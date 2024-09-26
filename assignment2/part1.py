@@ -1,6 +1,9 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
 import os
+from datetime import datetime
+
+
 
 class Part1:
 
@@ -48,7 +51,7 @@ class Part1:
 
     def insert_data(self):
         self.insert_user_data()
-
+        self.insert_activity_data()
         """ names = ['Bobby', 'Mc', 'McSmack', 'Board']
         for name in names:
             # Take note that the name is wrapped in '' --> '%s' because it is a string,
@@ -84,6 +87,53 @@ class Part1:
                 print(f"Error: {err}")
 
         self.db_connection.commit()
+
+
+    def insert_activity_data(self):
+        # Loop through each user ID folder
+        data_folder = 'assignment2/dataset/dataset/Data'
+        for user_id in os.listdir(data_folder):
+            # Skip hidden files
+            if user_id.startswith('.'):
+                continue
+
+            user_folder = f'assignment2/dataset/dataset/Data/{user_id}/Trajectory'
+
+            for activity_file in os.listdir(user_folder):
+                # Open and read the file, skipping files with too many rows
+                activity_file_path = f'{user_folder}/{activity_file}'
+                with open(activity_file_path, 'r', encoding='utf-8') as file:
+                    rows = file.readlines()
+
+                # Skip hidden files or if rows are more than 2506
+                if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
+                    continue
+                
+                try:
+                    # Assign start and end date-time string
+                    start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
+                    end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
+
+                    # Convert to datetime objects
+                    start_date_time = datetime.strptime(start_date_time_str, '%Y-%m-%d %H:%M:%S')
+                    end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
+
+                    # Extract the activity id from the file name
+                    activity_id = int(activity_file.split(".")[0])
+
+                    print(f"Inserting activity {activity_id} for user {user_id}")
+
+                    # Insert the activity into the Activity table in the database
+                    self.cursor.execute(
+                        "INSERT IGNORE INTO Activity (id, user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s, %s)",
+                        (activity_id, user_id, False, start_date_time, end_date_time)
+                    )
+                    self.db_connection.commit()
+                except (ValueError, IndexError) as e:
+                    print(f"Error parsing data for {activity_file}: {e}")
+                    continue  # Skip if there's an error in parsing
+
+
 
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
