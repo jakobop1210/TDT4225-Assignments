@@ -1,12 +1,19 @@
 # TDT4225-Assignments
 
 To start MySQL sever run:
-```
-$ docker-compose up -d
+
+``` bash
+docker-compose up -d
 ```
 
 To shut down server run:
-```
-$ docker-compose down
+
+``` bash
+docker-compose down
 ```
 
+MySql credentials:
+
+- server: db
+- username: root
+- password: group86
