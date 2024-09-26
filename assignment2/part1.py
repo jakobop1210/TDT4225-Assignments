@@ -1,6 +1,6 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
-
+import os
 
 class Part1:
 
@@ -8,15 +8,6 @@ class Part1:
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
-
-    def create_table(self, table_name):
-        query = """CREATE TABLE IF NOT EXISTS %s (
-                   id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
-                   name VARCHAR(30))
-                """
-        # This adds table_name to the %s variable and executes the query
-        self.cursor.execute(query % table_name)
-        self.db_connection.commit()
 
     def create_tables(self):
         query1 = """
@@ -55,13 +46,39 @@ class Part1:
         self.cursor.execute(query3)
         self.db_connection.commit()
 
-    def insert_data(self, table_name):
-        names = ['Bobby', 'Mc', 'McSmack', 'Board']
+    def insert_data(self):
+        self.insert_user_data()
+
+        """ names = ['Bobby', 'Mc', 'McSmack', 'Board']
         for name in names:
             # Take note that the name is wrapped in '' --> '%s' because it is a string,
             # while an int would be %s etc
             query = "INSERT INTO %s (name) VALUES ('%s')"
             self.cursor.execute(query % (table_name, name))
+        self.db_connection.commit() """
+
+    def insert_user_data(self):
+        labeled_ids_file = 'assignment2/dataset/dataset/labeled_ids.txt'
+
+        with open(labeled_ids_file, 'r', encoding='utf-8') as file:
+            labeled_user_ids = file.readlines()
+
+        labeled_user_ids = [line.strip() for line in labeled_user_ids]
+
+        data_folder = 'assignment2/dataset/dataset/Data'
+
+        # Use os.walk to traverse directories
+        for entry in os.listdir(data_folder):
+            has_labels = entry in labeled_user_ids
+            try:
+                # Insert into the User table
+                self.cursor.execute(
+                    "INSERT INTO User (ID, has_labels) VALUES (%s, %s)",
+                    (entry, has_labels)
+                )
+            except self.mysql.connector.Error as err:
+                print(f"Error: {err}")
+
         self.db_connection.commit()
 
     def fetch_data(self, table_name):
@@ -92,6 +109,9 @@ def main():
         program = Part1()
 
         program.create_tables()
+
+        program.insert_data()
+
         program.show_tables()
     except Exception as e:
         print("ERROR: Failed to use database:", e)
