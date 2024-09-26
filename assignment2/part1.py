@@ -73,7 +73,7 @@ class Part1:
             try:
                 # Insert into the User table
                 self.cursor.execute(
-                    "INSERT INTO User (ID, has_labels) VALUES (%s, %s)",
+                    "INSERT IGNORE INTO User (ID, has_labels) VALUES (%s, %s)",
                     (entry, has_labels)
                 )
             except self.mysql.connector.Error as err:
