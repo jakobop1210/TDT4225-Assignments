@@ -69,6 +69,10 @@ class Part1:
 
         # Use os.walk to traverse directories
         for entry in os.listdir(data_folder):
+            # Skip hidden files
+            if entry.startswith('.'):
+                continue
+            
             has_labels = entry in labeled_user_ids
             try:
                 # Insert into the User table
