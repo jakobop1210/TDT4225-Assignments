@@ -33,8 +33,8 @@ class Part1:
         """
 
         query3 = """
-            CREATE TABLE IF NOT EXISTS TrackPoints (
-                id INT NOT NULL PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS TrackPoint (
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 activity_id INT,
                 lat DOUBLE,
                 lon DOUBLE,
@@ -53,13 +53,7 @@ class Part1:
     def insert_data(self):
         self.insert_user_data()
         self.insert_activity_data()
-        """ names = ['Bobby', 'Mc', 'McSmack', 'Board']
-        for name in names:
-            # Take note that the name is wrapped in '' --> '%s' because it is a string,
-            # while an int would be %s etc
-            query = "INSERT INTO %s (name) VALUES ('%s')"
-            self.cursor.execute(query % (table_name, name))
-        self.db_connection.commit() """
+        self.insert_trackpoint_data()
 
     def get_labeled_user_ids(self):
         labeled_ids_file = 'assignment2/dataset/dataset/labeled_ids.txt'
@@ -81,7 +75,7 @@ class Part1:
             # Skip hidden files
             if entry.startswith('.'):
                 continue
-            
+
             has_labels = entry in labeled_user_ids
             try:
                 # Insert into the User table
@@ -180,8 +174,7 @@ class Part1:
                 self.insert_labeled_activity_data(user_id, f'assignment2/dataset/dataset/Data/{user_id}')
             else:
                 self.insert_unlabeled_activity_data(user_id,f'assignment2/dataset/dataset/Data/{user_id}/Trajectory')
-
-
+                
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
         self.cursor.execute(query % table_name)
@@ -193,15 +186,89 @@ class Part1:
         print(tabulate(rows, headers=self.cursor.column_names))
         return rows
 
-    def drop_table(self, table_name):
-        print("Dropping table %s..." % table_name)
-        query = "DROP TABLE %s"
-        self.cursor.execute(query % table_name)
+    def insert_trackpoint_data(self):
+        data_folder = 'assignment2/dataset/dataset/Data'
 
-    def show_tables(self):
-        self.cursor.execute("SHOW TABLES")
-        rows = self.cursor.fetchall()
-        print(tabulate(rows, headers=self.cursor.column_names))
+        # loop through user folders
+        for entry in os.listdir(data_folder):
+            entry_path = os.path.join(data_folder, entry)
+
+            if os.path.isdir(entry_path):
+                try:
+                    # Insert into the User table
+                    self.cursor.execute(
+                        "INSERT IGNORE INTO User (ID, has_labels) VALUES (%s, %s)",
+                        (entry, 0)  # Assuming has_labels is 0 for now, adjust based on your data
+                    )
+                except self.mysql.connector.Error as err:
+                    print(f"Error: {err}")
+
+                # Navigate into the Trajectory folder for each user
+                trajectory_folder = os.path.join(entry_path, 'Trajectory')
+                if os.path.exists(trajectory_folder):
+
+                    # loop through activity files
+                    for plt_file in os.listdir(trajectory_folder):
+                        plt_path = os.path.join(trajectory_folder, plt_file)
+
+                        try:
+                            # Check the number of lines in the activity file
+                            with open(plt_path, 'r') as file:
+                                line_count = sum(1 for _ in file)
+
+                            # Skip the file if it has more than 2506 lines
+                            if line_count > 2506:
+                                print(f"Skipping {plt_path}: contains {line_count} lines.")
+                                continue
+
+                            # Open and read the activity file
+                            with open(plt_path, 'r') as file:
+                                # Skip the first 6 lines (headers or metadata)
+                                for _ in range(6):
+                                    next(file)
+                                for line in file:
+                                    parts = line.strip().split(',')
+                                    # Extract the necessary fields (assuming: latitude, longitude, etc.)
+                                    lat, lon, altitude = parts[0], parts[1], parts[3]
+                                    date_days, date, time = parts[4], parts[5], parts[6]
+
+                                    date_time = f"{date} {time}"  # Combine date and time
+
+                                    # Get activity_id from the filename
+                                    #activity_id = int(os.path.splitext(plt_file)[0])
+
+                                    # Insert trackpoint data into the database (adjust query as needed)
+                                    self.cursor.execute(
+                                        "INSERT INTO TrackPoint (lat, lon, altitude, date_days, date_time) "
+                                        "VALUES (%s, %s, %s, %s, %s)",
+                                        (lat, lon, altitude, date_days, date_time)
+                                    )
+                        except Exception as e:
+                            print(f"Failed to read {plt_path}: {e}")
+
+        self.db_connection.commit()
+
+
+        def fetch_data(self, table_name):
+            query = "SELECT * FROM %s"
+            self.cursor.execute(query % table_name)
+            rows = self.cursor.fetchall()
+            print("Data from table %s, raw format:" % table_name)
+            print(rows)
+            # Using tabulate to show the table in a nice way
+            print("Data from table %s, tabulated:" % table_name)
+            print(tabulate(rows, headers=self.cursor.column_names))
+            return rows
+
+        def drop_table(self, table_name):
+            print("Dropping table %s..." % table_name)
+            query = "DROP TABLE %s"
+            self.cursor.execute(query % table_name)
+
+        def show_tables(self):
+            self.cursor.execute("SHOW TABLES")
+            rows = self.cursor.fetchall()
+            print(tabulate(rows, headers=self.cursor.column_names))
 
 
 def main():
