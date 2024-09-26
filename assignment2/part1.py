@@ -19,28 +19,37 @@ class Part1:
         self.db_connection.commit()
 
     def create_tables(self):
-        query1 = """CREATE TABLE IF NOT EXISTS User (
-                    id VARCHAR(255) NOT NULL PRIMARY KEY,
-                    has_labels BOOLEAN)
-                """
+        query1 = """
+            CREATE TABLE IF NOT EXISTS User (
+                id VARCHAR(255) NOT NULL PRIMARY KEY,
+                has_labels BOOLEAN
+            );
+        """
 
-        query2 = """CREATE TABLE IF NOT EXISTS Activity (
-                    id INT NOT NULL PRIMARY KEY,
-                    user_id VARCHAR(255) FOREIGN KEY REFERENCES User.id,
-                    transportation_mode VARCHAR(255),
-                    start_date_time DATETIME,
-                    end_date_time DATETIME)
-                """
+        query2 = """
+            CREATE TABLE IF NOT EXISTS Activity (
+                id INT NOT NULL PRIMARY KEY,
+                user_id VARCHAR(255),
+                transportation_mode VARCHAR(255),
+                start_date_time DATETIME,
+                end_date_time DATETIME,
+                FOREIGN KEY (user_id) REFERENCES User(id)
+            );
+        """
 
-        query3 = """CREATE TABLE IF NOT EXISTS TrackPoints (
-                    id INT NOT NULL PRIMARY KEY,
-                    activity_id INT FOREIGN KEY REFERENCES Activity.id,
-                    lat DOUBLE,
-                    lon DOUBLE,
-                    altitude INT,
-                    date_days DOUBLE,
-                    date_time DATETIME)
-                """
+        query3 = """
+            CREATE TABLE IF NOT EXISTS TrackPoints (
+                id INT NOT NULL PRIMARY KEY,
+                activity_id INT,
+                lat DOUBLE,
+                lon DOUBLE,
+                altitude INT,
+                date_days DOUBLE,
+                date_time DATETIME,
+                FOREIGN KEY (activity_id) REFERENCES Activity(id)
+            );
+        """
+
         self.cursor.execute(query1)
         self.cursor.execute(query2)
         self.cursor.execute(query3)
