@@ -2,6 +2,7 @@ from DbConnector import DbConnector
 from tabulate import tabulate
 import os
 from datetime import datetime
+import pandas as pd
 
 
 
@@ -22,7 +23,7 @@ class Part1:
 
         query2 = """
             CREATE TABLE IF NOT EXISTS Activity (
-                id INT NOT NULL PRIMARY KEY,
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(255),
                 transportation_mode VARCHAR(255),
                 start_date_time DATETIME,
@@ -60,13 +61,18 @@ class Part1:
             self.cursor.execute(query % (table_name, name))
         self.db_connection.commit() """
 
-    def insert_user_data(self):
+    def get_labeled_user_ids(self):
         labeled_ids_file = 'assignment2/dataset/dataset/labeled_ids.txt'
 
         with open(labeled_ids_file, 'r', encoding='utf-8') as file:
             labeled_user_ids = file.readlines()
 
         labeled_user_ids = [line.strip() for line in labeled_user_ids]
+
+        return labeled_user_ids
+
+    def insert_user_data(self):
+        labeled_user_ids = self.get_labeled_user_ids()
 
         data_folder = 'assignment2/dataset/dataset/Data'
 
@@ -88,51 +94,92 @@ class Part1:
 
         self.db_connection.commit()
 
+    def insert_labeled_activity_data(self, user_id, user_folder):
+        """
+        Insert labeled activity data into the database. Since the user folder contains a 'labels.txt' file,
+        we can use this to insert the data into the Activity table in the database.
+
+        :param user_id: The user ID
+        :param user_folder: The folder path to the user
+        """
+        labels_file_path = os.path.join(user_folder, 'labels.txt') 
+        labels_file = pd.read_csv(labels_file_path, sep='\t')
+
+        labels_file['Start Time'] = pd.to_datetime(labels_file['Start Time'], format='%Y/%m/%d %H:%M:%S')
+        labels_file['End Time'] = pd.to_datetime(labels_file['End Time'], format='%Y/%m/%d %H:%M:%S')
+
+        # Loop through each row in the labels_file and inser the data into the Activity table
+        for index, row in labels_file.iterrows():
+            transportation_mode = row['Transportation Mode']  
+            start_time = row['Start Time']
+            end_time = row['End Time']
+
+            try:
+                self.cursor.execute(
+                    "INSERT IGNORE INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)",
+                    (user_id, transportation_mode, start_time, end_time)
+                )
+            except (ValueError, IndexError) as e:
+                print(f"Error parsing data for {labels_file}: {e}")
+                continue
+        self.db_connection.commit()
+
+
+
+    def insert_unlabeled_activity_data(self, user_id, user_folder):
+        """
+        Insert unlabeled activity data into the database. Since the user does not have a 'labels.txt' file,
+        all the files in the user folder must be iterated through to insert the Activity data into the database.
+
+        :param user_id: The user ID
+        :param user_folder: The folder path to the user
+        """
+        for activity_file in os.listdir(user_folder):
+            activity_file_path = f'{user_folder}/{activity_file}'
+            with open(activity_file_path, 'r', encoding='utf-8') as file:
+                rows = file.readlines()
+
+            # Skip hidden files or if rows are more than 2506
+            if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
+                continue
+            
+            try:
+                # Assign start and end date-time string
+                start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
+                end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
+
+                # Convert to datetime objects
+                start_date_time = datetime.strptime(start_date_time_str, '%Y-%m-%d %H:%M:%S')
+                end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
+
+                # Insert the activity into the Activity table in the database
+                self.cursor.execute(
+                    "INSERT IGNORE INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)",
+                    (user_id, "", start_date_time, end_date_time)
+                )
+            except (ValueError, IndexError) as e:
+                print(f"Error parsing data for {activity_file}: {e}")
+                continue
+        self.db_connection.commit()
+
 
     def insert_activity_data(self):
-        # Loop through each user ID folder
+        """
+        Insert activity data into the database. This function will insert both labeled and unlabeled activity data,
+        by calling the appropriate function based on if the user is in the labeled_ids.txt file or not. 
+        """
+        labeled_user_ids = self.get_labeled_user_ids()
         data_folder = 'assignment2/dataset/dataset/Data'
+
         for user_id in os.listdir(data_folder):
             # Skip hidden files
             if user_id.startswith('.'):
                 continue
 
-            user_folder = f'assignment2/dataset/dataset/Data/{user_id}/Trajectory'
-
-            for activity_file in os.listdir(user_folder):
-                # Open and read the file, skipping files with too many rows
-                activity_file_path = f'{user_folder}/{activity_file}'
-                with open(activity_file_path, 'r', encoding='utf-8') as file:
-                    rows = file.readlines()
-
-                # Skip hidden files or if rows are more than 2506
-                if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
-                    continue
-                
-                try:
-                    # Assign start and end date-time string
-                    start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
-                    end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
-
-                    # Convert to datetime objects
-                    start_date_time = datetime.strptime(start_date_time_str, '%Y-%m-%d %H:%M:%S')
-                    end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
-
-                    # Extract the activity id from the file name
-                    activity_id = int(activity_file.split(".")[0])
-
-                    print(f"Inserting activity {activity_id} for user {user_id}")
-
-                    # Insert the activity into the Activity table in the database
-                    self.cursor.execute(
-                        "INSERT IGNORE INTO Activity (id, user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s, %s)",
-                        (activity_id, user_id, False, start_date_time, end_date_time)
-                    )
-                    self.db_connection.commit()
-                except (ValueError, IndexError) as e:
-                    print(f"Error parsing data for {activity_file}: {e}")
-                    continue  # Skip if there's an error in parsing
-
+            if user_id in labeled_user_ids:
+                self.insert_labeled_activity_data(user_id, f'assignment2/dataset/dataset/Data/{user_id}')
+            else:
+                self.insert_unlabeled_activity_data(user_id,f'assignment2/dataset/dataset/Data/{user_id}/Trajectory')
 
 
     def fetch_data(self, table_name):
@@ -161,11 +208,8 @@ def main():
     program = None
     try:
         program = Part1()
-
         program.create_tables()
-
         program.insert_data()
-
         program.show_tables()
     except Exception as e:
         print("ERROR: Failed to use database:", e)
