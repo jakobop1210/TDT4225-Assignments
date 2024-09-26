@@ -4,4 +4,4 @@
 # Ignoe all files in dataset folder
 assignment2/dataset/
 
-
+.venv/
