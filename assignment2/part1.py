@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import pandas as pd
 
-
+DATASET_PATH = 'assignment2/dataset/dataset/Data'
 
 class Part1:
 
@@ -53,9 +53,13 @@ class Part1:
     def insert_data(self):
         self.insert_user_data()
         self.insert_activity_data()
-        self.insert_trackpoint_data()
 
     def get_labeled_user_ids(self):
+        """
+        Find the user IDs that have labels.txt file in the dataset.
+
+        :return: list of user IDs
+        """
         labeled_ids_file = 'assignment2/dataset/dataset/labeled_ids.txt'
 
         with open(labeled_ids_file, 'r', encoding='utf-8') as file:
@@ -66,12 +70,14 @@ class Part1:
         return labeled_user_ids
 
     def insert_user_data(self):
+        """
+        Insert user data into the database. This function will insert both labeled and unlabeled user data 
+        by looping over all the user folders in the dataset.
+        """
         labeled_user_ids = self.get_labeled_user_ids()
 
-        data_folder = 'assignment2/dataset/dataset/Data'
-
         # Use os.walk to traverse directories
-        for entry in os.listdir(data_folder):
+        for entry in os.listdir(DATASET_PATH):
             # Skip hidden files
             if entry.startswith('.'):
                 continue
@@ -88,92 +94,124 @@ class Part1:
 
         self.db_connection.commit()
 
-    def insert_labeled_activity_data(self, user_id, user_folder):
+    def get_transportation_mode(self, user_folder, start_date_time, end_date_time):
         """
-        Insert labeled activity data into the database. Since the user folder contains a 'labels.txt' file,
-        we can use this to insert the data into the Activity table in the database.
+        Get the transportation mode for a given user, where start time and end time 
+        need to match the given parameters, otherwise return an empty string.
 
-        :param user_id: The user ID
-        :param user_folder: The folder path to the user
+        :param user_folder: path to the user folder
+        :param start_date_time: start date and time from the activity file
+        :param end_date_time: end date and time from the activity file
+
+        :return: transportation mode or empty string
         """
-        labels_file_path = os.path.join(user_folder, 'labels.txt') 
+        # Read the labels.txt file
+        labels_file_path = os.path.join(user_folder, 'labels.txt')
         labels_file = pd.read_csv(labels_file_path, sep='\t')
-
+    
+        # Convert 'Start Time' and 'End Time' to datetime format
         labels_file['Start Time'] = pd.to_datetime(labels_file['Start Time'], format='%Y/%m/%d %H:%M:%S')
         labels_file['End Time'] = pd.to_datetime(labels_file['End Time'], format='%Y/%m/%d %H:%M:%S')
-
-        # Loop through each row in the labels_file and inser the data into the Activity table
-        for index, row in labels_file.iterrows():
-            transportation_mode = row['Transportation Mode']  
-            start_time = row['Start Time']
-            end_time = row['End Time']
-
-            try:
-                self.cursor.execute(
-                    "INSERT IGNORE INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)",
-                    (user_id, transportation_mode, start_time, end_time)
-                )
-            except (ValueError, IndexError) as e:
-                print(f"Error parsing data for {labels_file}: {e}")
-                continue
-        self.db_connection.commit()
-
-
-
-    def insert_unlabeled_activity_data(self, user_id, user_folder):
-        """
-        Insert unlabeled activity data into the database. Since the user does not have a 'labels.txt' file,
-        all the files in the user folder must be iterated through to insert the Activity data into the database.
-
-        :param user_id: The user ID
-        :param user_folder: The folder path to the user
-        """
-        for activity_file in os.listdir(user_folder):
-            activity_file_path = f'{user_folder}/{activity_file}'
-            with open(activity_file_path, 'r', encoding='utf-8') as file:
-                rows = file.readlines()
-
-            # Skip hidden files or if rows are more than 2506
-            if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
-                continue
-            
-            try:
-                # Assign start and end date-time string
-                start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
-                end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
-
-                # Convert to datetime objects
-                start_date_time = datetime.strptime(start_date_time_str, '%Y-%m-%d %H:%M:%S')
-                end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
-
-                # Insert the activity into the Activity table in the database
-                self.cursor.execute(
-                    "INSERT IGNORE INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)",
-                    (user_id, "", start_date_time, end_date_time)
-                )
-            except (ValueError, IndexError) as e:
-                print(f"Error parsing data for {activity_file}: {e}")
-                continue
-        self.db_connection.commit()
+    
+        # Check if a row matches the given start_date_time and end_date_time
+        matching_row = labels_file[(labels_file['Start Time'] == start_date_time) & (labels_file['End Time'] == end_date_time)]
+    
+        # If a matching row is found, return the 'Transportation Mode', else return an empty string
+        if not matching_row.empty:
+            return matching_row.iloc[0]['Transportation Mode']
+        else:
+            return ''
 
 
     def insert_activity_data(self):
         """
-        Insert activity data into the database. This function will insert both labeled and unlabeled activity data,
-        by calling the appropriate function based on if the user is in the labeled_ids.txt file or not. 
+        Insert activity data into the database. Loops over all the users and their activity files
+        and inserts the data into the Activity table. If the user has a labels.txt file, the transportation
+        mode will be fetched from the get_transportation_mode function.
         """
         labeled_user_ids = self.get_labeled_user_ids()
-        data_folder = 'assignment2/dataset/dataset/Data'
 
-        for user_id in os.listdir(data_folder):
+        for user_id in os.listdir(DATASET_PATH):
             # Skip hidden files
             if user_id.startswith('.'):
                 continue
 
-            if user_id in labeled_user_ids:
-                self.insert_labeled_activity_data(user_id, f'assignment2/dataset/dataset/Data/{user_id}')
-            else:
-                self.insert_unlabeled_activity_data(user_id,f'assignment2/dataset/dataset/Data/{user_id}/Trajectory')
+            # Path to the folder of the iterated user
+            user_folder = os.path.join(DATASET_PATH, user_id)
+
+            # Check if the Trajectory folder exists
+            if os.path.exists(f'{user_folder}/Trajectory'):
+                activities_path = os.path.join(user_folder, 'Trajectory')
+
+            # Loop over all the activity files in the Trajectory folder
+            for activity_file in os.listdir(activities_path):
+                activity_file_path = os.path.join(activities_path, activity_file)
+                with open(activity_file_path, 'r', encoding='utf-8') as file:
+                    rows = file.readlines()
+
+                # Skip hidden files or if rows are more than 2506
+                if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
+                    continue
+                
+                try:
+                    # Assign start and end date-time string
+                    start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
+                    end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
+
+                    # Convert to datetime objects
+                    start_date_time = datetime.strptime(start_date_time_str, '%Y-%m-%d %H:%M:%S')
+                    end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
+
+                    # Get transportation mode if user is labeled
+                    transportation_mode = ""
+                    if user_id in labeled_user_ids:
+                        transportation_mode = self.get_transportation_mode(user_folder, start_date_time, end_date_time)
+        
+
+                    print(f"User: {user_id}, Transportation mode: {transportation_mode}, Start: {start_date_time}, End: {end_date_time}")
+
+                    # Insert the activity into the Activity table in the database
+                    self.cursor.execute(
+                        "INSERT IGNORE INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)",
+                        (user_id, transportation_mode, start_date_time, end_date_time)
+                    )
+
+                    # Insert trackpoint data
+                    activity_id = self.cursor.lastrowid
+                    self.insert_trackpoint_data(activity_id, rows)
+
+                except (ValueError, IndexError) as e:
+                    print(f"Error parsing data for {activity_file}: {e}")
+                    continue
+            self.db_connection.commit()
+
+    def insert_trackpoint_data(self, activity_id, rows):
+        """
+        Insert trackpoint data into the database. This function will insert trackpoint data
+        for a given activity ID and a list of rows from the activity file.
+        :param activity_id: ID of the activity
+        :param rows: list of rows from the activity file
+        """
+        for row in rows[6:]: 
+            data = row.strip().split(",")
+            latitude, longitude, altitude, days, date, time = float(data[0]), float(data[1]), float(data[3]), float(data[4]), data[5], data[6]
+            date_time_str = f"{date} {time}"
+            date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+            if altitude == '-777':
+                altitude = None
+            try:
+                # Insert each trackpoint into the TrackPoint table
+                self.cursor.execute(
+                    "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (activity_id, latitude, longitude, altitude, days, date_time)
+                )
+            except Exception as e:
+                print(f"Error inserting trackpoint for activity {activity_id}: {e}")
+                continue
+        print(f"Inserted trackpoint for activity {activity_id}")
+
+
+
                 
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
@@ -186,67 +224,9 @@ class Part1:
         print(tabulate(rows, headers=self.cursor.column_names))
         return rows
 
-    def insert_trackpoint_data(self):
-        data_folder = 'assignment2/dataset/dataset/Data'
 
-        # loop through user folders
-        for entry in os.listdir(data_folder):
-            entry_path = os.path.join(data_folder, entry)
-
-            if os.path.isdir(entry_path):
-                try:
-                    # Insert into the User table
-                    self.cursor.execute(
-                        "INSERT IGNORE INTO User (ID, has_labels) VALUES (%s, %s)",
-                        (entry, 0)  # Assuming has_labels is 0 for now, adjust based on your data
-                    )
-                except self.mysql.connector.Error as err:
-                    print(f"Error: {err}")
-
-                # Navigate into the Trajectory folder for each user
-                trajectory_folder = os.path.join(entry_path, 'Trajectory')
-                if os.path.exists(trajectory_folder):
-
-                    # loop through activity files
-                    for plt_file in os.listdir(trajectory_folder):
-                        plt_path = os.path.join(trajectory_folder, plt_file)
-
-                        try:
-                            # Check the number of lines in the activity file
-                            with open(plt_path, 'r') as file:
-                                line_count = sum(1 for _ in file)
-
-                            # Skip the file if it has more than 2506 lines
-                            if line_count > 2506:
-                                print(f"Skipping {plt_path}: contains {line_count} lines.")
-                                continue
-
-                            # Open and read the activity file
-                            with open(plt_path, 'r') as file:
-                                # Skip the first 6 lines (headers or metadata)
-                                for _ in range(6):
-                                    next(file)
-                                for line in file:
-                                    parts = line.strip().split(',')
-                                    # Extract the necessary fields (assuming: latitude, longitude, etc.)
-                                    lat, lon, altitude = parts[0], parts[1], parts[3]
-                                    date_days, date, time = parts[4], parts[5], parts[6]
-
-                                    date_time = f"{date} {time}"  # Combine date and time
-
-                                    # Get activity_id from the filename
-                                    #activity_id = int(os.path.splitext(plt_file)[0])
-
-                                    # Insert trackpoint data into the database (adjust query as needed)
-                                    self.cursor.execute(
-                                        "INSERT INTO TrackPoint (lat, lon, altitude, date_days, date_time) "
-                                        "VALUES (%s, %s, %s, %s, %s)",
-                                        (lat, lon, altitude, date_days, date_time)
-                                    )
-                        except Exception as e:
-                            print(f"Failed to read {plt_path}: {e}")
-
-        self.db_connection.commit()
+        
+        
 
 
         def fetch_data(self, table_name):
@@ -277,7 +257,6 @@ def main():
         program = Part1()
         program.create_tables()
         program.insert_data()
-        program.show_tables()
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
