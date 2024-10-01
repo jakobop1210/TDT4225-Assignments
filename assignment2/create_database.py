@@ -60,7 +60,7 @@ class Part1:
 
         :return: list of user IDs
         """
-        labeled_ids_file = 'assignment2/dataset/dataset/labeled_ids.txt'
+        labeled_ids_file = os.path.join(os.path.dirname(__file__), "dataset", "dataset", "labeled_ids.txt")
 
         with open(labeled_ids_file, 'r', encoding='utf-8') as file:
             labeled_user_ids = file.readlines()
