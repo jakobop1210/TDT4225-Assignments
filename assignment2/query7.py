@@ -52,7 +52,7 @@ def total_distance_id112():
 
 def haversine(lat1, lon1, lat2, lon2):
     """
-    Calculate the great circle distance between two points. 
+    Calculate the great circle distance between two points.
     on the earth (specified in decimal degrees)
 
     Parameters:
