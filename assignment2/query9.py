@@ -6,7 +6,7 @@ def fetch_invalid_activities():
 
     try:
         query = """
-        SELECT a.user_id, COUNT(*) AS invalid_activity_count
+        SELECT a.user_id, COUNT(DISTINCT a.id) AS invalid_activity_count
         FROM Activity a
         JOIN TrackPoint tp1 ON a.id = tp1.activity_id
         JOIN TrackPoint tp2 ON a.id = tp2.activity_id
