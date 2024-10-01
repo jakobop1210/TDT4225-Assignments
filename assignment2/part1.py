@@ -71,7 +71,7 @@ class Part1:
 
     def insert_user_data(self):
         """
-        Insert user data into the database. This function will insert both labeled and unlabeled user data 
+        Insert user data into the database. This function will insert both labeled and unlabeled user data
         by looping over all the user folders in the dataset.
         """
         labeled_user_ids = self.get_labeled_user_ids()
@@ -96,7 +96,7 @@ class Part1:
 
     def get_transportation_mode(self, user_folder, start_date_time, end_date_time):
         """
-        Get the transportation mode for a given user, where start time and end time 
+        Get the transportation mode for a given user, where start time and end time
         need to match the given parameters, otherwise return an empty string.
 
         :param user_folder: path to the user folder
@@ -108,14 +108,14 @@ class Part1:
         # Read the labels.txt file
         labels_file_path = os.path.join(user_folder, 'labels.txt')
         labels_file = pd.read_csv(labels_file_path, sep='\t')
-    
+
         # Convert 'Start Time' and 'End Time' to datetime format
         labels_file['Start Time'] = pd.to_datetime(labels_file['Start Time'], format='%Y/%m/%d %H:%M:%S')
         labels_file['End Time'] = pd.to_datetime(labels_file['End Time'], format='%Y/%m/%d %H:%M:%S')
-    
+
         # Check if a row matches the given start_date_time and end_date_time
         matching_row = labels_file[(labels_file['Start Time'] == start_date_time) & (labels_file['End Time'] == end_date_time)]
-    
+
         # If a matching row is found, return the 'Transportation Mode', else return an empty string
         if not matching_row.empty:
             return matching_row.iloc[0]['Transportation Mode']
@@ -152,10 +152,10 @@ class Part1:
                 # Skip hidden files or if rows are more than 2506
                 if len(rows) > 2506 or activity_file.startswith('.') or len(rows) < 7:
                     continue
-                
+
                 try:
                     # Assign start and end date-time string
-                    start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}' 
+                    start_date_time_str = f'{rows[6].strip().split(",")[5]} {rows[6].strip().split(",")[6]}'
                     end_date_time_str = f'{rows[-1].strip().split(",")[5]} {rows[-1].strip().split(",")[6]}'
 
                     # Convert to datetime objects
@@ -166,7 +166,7 @@ class Part1:
                     transportation_mode = ""
                     if user_id in labeled_user_ids:
                         transportation_mode = self.get_transportation_mode(user_folder, start_date_time, end_date_time)
-        
+
 
                     print(f"User: {user_id}, Transportation mode: {transportation_mode}, Start: {start_date_time}, End: {end_date_time}")
 
@@ -212,7 +212,7 @@ class Part1:
 
 
 
-                
+
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
         self.cursor.execute(query % table_name)
@@ -225,8 +225,8 @@ class Part1:
         return rows
 
 
-        
-        
+
+
 
 
         def fetch_data(self, table_name):
