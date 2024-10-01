@@ -10,8 +10,8 @@ def fetch_invalid_activities():
         FROM Activity a
         JOIN TrackPoint tp1 ON a.id = tp1.activity_id
         JOIN TrackPoint tp2 ON a.id = tp2.activity_id
-        WHERE TIMESTAMPDIFF(MINUTE, tp1.date_time, tp2.date_time) >= 5
-        AND tp1.id < tp2.id  
+        WHERE (tp2.date_days - tp1.date_days) >= 0.00347
+        AND (tp1.id + 1) = tp2.id  
         GROUP BY a.user_id;
         """
         
