@@ -6,7 +6,7 @@ import pandas as pd
 
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "dataset", "dataset", "Data")
 
-class Part1:
+class CreateDatabase:
 
     def __init__(self):
         self.connection = DbConnector()
@@ -236,11 +236,17 @@ class Part1:
         rows = self.cursor.fetchall()
         print(tabulate(rows, headers=self.cursor.column_names))
 
+    def drop_all_tables(self):
+        print("Drop whole database...")
+        query = "DROP TABLE User, Activity, TrackPoint"
+        self.cursor.execute(query)
 
+    
 def main():
     program = None
     try:
-        program = Part1()
+        program = CreateDatabase()
+        #program.drop_all_tables()
         program.create_tables()
         program.insert_data()
     except Exception as e:
