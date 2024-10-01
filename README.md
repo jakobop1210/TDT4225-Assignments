@@ -12,6 +12,8 @@ To shut down server run:
 docker-compose down
 ```
 
+Go to <http://localhost:8080/> to see the database
+
 MySql credentials:
 
 - server: db
