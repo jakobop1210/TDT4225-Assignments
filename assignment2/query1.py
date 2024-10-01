@@ -15,7 +15,6 @@ def count_users_activities_trackpoints():
             (SELECT COUNT(*) FROM Activity) AS number_of_activities,
             (SELECT COUNT(*) FROM TrackPoint) AS number_of_trackpoints;
     """
-
     cursor.execute(query)
     query_result = cursor.fetchone()
 
