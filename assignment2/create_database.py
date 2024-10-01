@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import pandas as pd
 
-DATASET_PATH = 'assignment2/dataset/dataset/Data'
+DATASET_PATH = os.path.join(os.path.dirname(__file__), "dataset", "dataset", "Data")
 
 class Part1:
 
@@ -130,7 +130,12 @@ class Part1:
         """
         labeled_user_ids = self.get_labeled_user_ids()
 
-        for user_id in os.listdir(DATASET_PATH):
+        # Get all users from database
+        self.cursor.execute("SELECT id FROM User")
+        users = self.cursor.fetchall()
+        user_ids = [user_id_tuple[0] for user_id_tuple in users]
+
+        for user_id in user_ids:
             # Skip hidden files
             if user_id.startswith('.'):
                 continue
