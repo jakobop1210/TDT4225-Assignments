@@ -2,7 +2,7 @@ from DbConnector import DbConnector
 
 def find_all_user_taken_taxi():
     """
-    Find all distinct users that have taken a taxi in the database. 
+    Find all distinct users that have taken a taxi in the database.
     Print the user IDs to the console.
     """
     connection = DbConnector()

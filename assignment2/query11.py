@@ -10,7 +10,7 @@ def execute_query():
     db_connection = connection.db_connection
     cursor = connection.cursor
 
-    query = "SELECT user_id, transportation_mode FROM activity WHERE transportation_mode IS NOT NULL GROUP BY user_id, transportation_mode ORDER BY user_id"
+    query = "SELECT user_id, transportation_mode FROM Activity WHERE transportation_mode IS NOT NULL GROUP BY user_id, transportation_mode ORDER BY user_id"
     cursor.execute(query)
     result = cursor.fetchall()
     print(result)

@@ -1,8 +1,8 @@
 from tabulate import tabulate
-from DbConnector import DbConnector  
+from DbConnector import DbConnector
 
 def fetch_year_with_most_activities():
-    db_connector = DbConnector()  
+    db_connector = DbConnector()
 
     try:
         # Define the SQL query to find the year with the most activities
@@ -13,11 +13,11 @@ def fetch_year_with_most_activities():
         ORDER BY activity_count DESC
         LIMIT 1;
         """
-        
+
         # Execute the query
         db_connector.cursor.execute(query)
         row = db_connector.cursor.fetchone()  # Fetch only one row since we need the top result
-        
+
         # Print the results in a tabulated format
         if row:
             print("Year with the most activities:")
