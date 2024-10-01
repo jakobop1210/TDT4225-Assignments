@@ -3,7 +3,10 @@ import math
 
 def total_distance_id112():
     """
-    Find the total distance (in km) walked in 2008, by user with id=112
+    Find the total distance (in km) walked in 2008, by user with id=112.
+    First find all activities for user with id=112 in 2008 where the transportation mode is 'walk'.
+    Then find all trackpoints for each activity.
+    Calculate the distance between each pair of trackpoints and sum them all up.
     """
     connection = DbConnector()
     db_connection = connection.db_connection
@@ -18,7 +21,6 @@ def total_distance_id112():
         AND transportation_mode = 'walk'
         AND YEAR(start_date_time) = 2008;
     """
-
     cursor.execute(walking_activities)
     activities = cursor.fetchall()
 
@@ -31,6 +33,7 @@ def total_distance_id112():
             WHERE activity_id = %s
             ORDER BY date_time ASC;
         """
+
         cursor.execute(trackpoint_query, (activity_id,))
         trackpoints = cursor.fetchall()
 
