@@ -122,7 +122,6 @@ class Part1:
         else:
             return ''
 
-
     def insert_activity_data(self):
         """
         Insert activity data into the database. Loops over all the users and their activity files
