@@ -120,7 +120,7 @@ class CreateDatabase:
         if not matching_row.empty:
             return matching_row.iloc[0]['Transportation Mode']
         else:
-            return ''
+            return None
 
     def insert_activity_data(self):
         """
@@ -167,10 +167,9 @@ class CreateDatabase:
                     end_date_time = datetime.strptime(end_date_time_str, '%Y-%m-%d %H:%M:%S')
 
                     # Get transportation mode if user is labeled
-                    transportation_mode = ""
+                    transportation_mode = None
                     if user_id in labeled_user_ids:
                         transportation_mode = self.get_transportation_mode(user_folder, start_date_time, end_date_time)
-
 
                     print(f"User: {user_id}, Transportation mode: {transportation_mode}, Start: {start_date_time}, End: {end_date_time}")
 
@@ -201,7 +200,7 @@ class CreateDatabase:
             latitude, longitude, altitude, days, date, time = float(data[0]), float(data[1]), float(data[3]), float(data[4]), data[5], data[6]
             date_time_str = f"{date} {time}"
             date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
-            if altitude == '-777':
+            if altitude == -777:
                 altitude = None
             try:
                 # Insert each trackpoint into the TrackPoint table
@@ -241,12 +240,11 @@ class CreateDatabase:
         query = "DROP TABLE User, Activity, TrackPoint"
         self.cursor.execute(query)
 
-    
 def main():
     program = None
     try:
         program = CreateDatabase()
-        #program.drop_all_tables()
+        program.drop_all_tables()
         program.create_tables()
         program.insert_data()
     except Exception as e:

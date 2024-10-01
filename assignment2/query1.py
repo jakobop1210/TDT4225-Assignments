@@ -10,12 +10,12 @@ def count_users_activities_trackpoints():
     cursor = connection.cursor
 
     query = """
-        SELECT 
+        SELECT
             (SELECT COUNT(DISTINCT id) FROM User) AS number_of_users,
             (SELECT COUNT(*) FROM Activity) AS number_of_activities,
             (SELECT COUNT(*) FROM TrackPoint) AS number_of_trackpoints;
     """
-    
+
     cursor.execute(query)
     query_result = cursor.fetchone()
 

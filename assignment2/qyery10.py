@@ -29,7 +29,7 @@ def find_users_in_forbidden_city():
             print(f"- User ID: {user[0]}")
     else:
         print("No users have tracked an activity in the Forbidden City")
-    
+
     db_connection.close()
     connection.close_connection()
 
