@@ -5,8 +5,7 @@ def find_users_with_most_altitudes():
     """
     Find the top 20 users who have gained the most altitude meters.
     Output should be a table with (id, total meters gained per user).
-    Remember that some altitude-values are invalid
-    Tip: ∑⬚ ⬚ ⬚ (𝑡𝑝⬚𝑛. 𝑎𝑙𝑡𝑖𝑡𝑢𝑑𝑒 − 𝑡𝑝⬚𝑛−1. 𝑎𝑙𝑡𝑖𝑡𝑢𝑑𝑒), 𝑡𝑝⬚𝑛. 𝑎𝑙𝑡𝑖𝑡𝑢𝑑𝑒 > 𝑡𝑝⬚𝑛−1. 𝑎𝑙𝑡𝑖𝑡𝑢𝑑�
+    Remember that some altitude-values are invalid.
     """
     connection = DbConnector()
     db_connection = connection.db_connection
@@ -29,8 +28,14 @@ def find_users_with_most_altitudes():
     result = cursor.fetchall()
 
     if result:
+        # Convert results to meters
+        for i in range(len(result)):
+            user_id, total_feet_gained = result[i]
+            total_meters_gained = float(total_feet_gained) * 0.3048
+            result[i] = (user_id, total_meters_gained)
+
         print("Top 20 Users by Altitude Gained:")
-        print(tabulate(result, headers=["User ID", "Total Feet Gained"], tablefmt="fancy_grid"))
+        print(tabulate(result, headers=["User ID", "Total Meters Gained"], tablefmt="fancy_grid"))
     else:
         print("No users found")
 
