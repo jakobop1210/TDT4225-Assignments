@@ -11,7 +11,7 @@ def count_users_activities_trackpoints():
 
     query = """
         SELECT
-            (SELECT COUNT(DISTINCT id) FROM User) AS number_of_users,
+            (SELECT COUNT(*) FROM User) AS number_of_users,
             (SELECT COUNT(*) FROM Activity) AS number_of_activities,
             (SELECT COUNT(*) FROM TrackPoint) AS number_of_trackpoints;
     """
