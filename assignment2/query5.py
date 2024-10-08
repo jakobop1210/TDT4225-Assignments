@@ -1,3 +1,4 @@
+from tabulate import tabulate
 from DbConnector import DbConnector
 
 def find_activities_for_all_modes():
@@ -19,8 +20,11 @@ def find_activities_for_all_modes():
     result = cursor.fetchall()
 
     if result:
+        table_data = []
         for mode, count in result:
-            print(f"With transportation mode {mode} there are {count} activities")
+            table_data.append([mode, count])
+
+        print(tabulate(table_data, headers=["Transportation Mode", "Activity Count"], tablefmt="grid"))
     else:
         print("No transportation modes found")
 
