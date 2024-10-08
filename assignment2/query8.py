@@ -17,9 +17,10 @@ def find_users_with_most_altitudes():
         FROM TrackPoint AS t1
         JOIN TrackPoint AS t2
             ON t1.activity_id = t2.activity_id
-            AND t1.date_time > t2.date_time
+            AND t1.id = (t2.id + 1)
         JOIN Activity ON t1.activity_id = Activity.id
         WHERE t1.altitude IS NOT NULL
+        AND t2.altitude IS NOT NULL
         GROUP BY Activity.user_id
         ORDER BY total_feet_gained DESC
         LIMIT 20
