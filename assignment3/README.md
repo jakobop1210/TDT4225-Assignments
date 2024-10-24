@@ -12,7 +12,7 @@ To shut down server run:
 docker-compose down
 ```
 
-You can then access the database at `mongodb://root:example@localhost:27017?authSource=admin` using a MongoDB client or application like MongoDB Compass
+You can then access the database at `mongodb://root:example@localhost:27017?authSource=admin` using a MongoDB client or application, like MongoDB Compass.
 
 ### Setup python
 
