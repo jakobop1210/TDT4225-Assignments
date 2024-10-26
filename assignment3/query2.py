@@ -1,24 +1,26 @@
 from pprint import pprint
 from DbConnector import DbConnector
 
-def count_users_activities_trackpoints():
+def average_activities_per_user():
     """
-    Count the total number of users, activities, and trackpoints in the MongoDB database
-    and print the results to the console.
+    Calculate the average number of activities per user in the MongoDB database
+    and print the result to the console.
     """
     connection = DbConnector()
     db = connection.db
 
-    # Count users, activities, and trackpoints
+    # Count total users and activities
     number_of_users = db['users'].count_documents({})
     number_of_activities = db['activities'].count_documents({})
-    number_of_trackpoints = db['trackpoints'].count_documents({})
+
+    # Calculate the average number of activities per user
+    average_activities = number_of_activities / number_of_users if number_of_users > 0 else 0
 
     # Prepare output as a dictionary
     results = {
         "Number of users": number_of_users,
         "Number of activities": number_of_activities,
-        "Number of trackpoints": number_of_trackpoints
+        "Average activities per user": average_activities
     }
 
     # Pretty print the results
@@ -27,4 +29,4 @@ def count_users_activities_trackpoints():
     connection.close_connection()
 
 if __name__ == "__main__":
-    count_users_activities_trackpoints()
+    average_activities_per_user()
