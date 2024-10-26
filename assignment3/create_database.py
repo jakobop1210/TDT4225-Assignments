@@ -118,7 +118,7 @@ class CreateDatabase:
             return None
 
     
-    def insert_activities(self,):
+    def insert_activities(self):
         """
         Insert activity data into MongoDB. Loops over all users and their activity files
         and inserts the data into the specified collection. If the user has a labels.txt file,
@@ -180,9 +180,64 @@ class CreateDatabase:
                     # Insert the activity document into MongoDB
                     activites_collection.insert_one(activity_doc)
 
+                    # Insert trackpoint data
+                    self.insert_trackpoint_data(activity_doc["_id"], rows)
+
                 except (ValueError, IndexError) as e:
                     print(f"Error parsing data for {activity_file}: {e}")
                     continue
+
+
+    def insert_trackpoint_data(self, activity_id, rows):
+        """
+        Insert trackpoint data into MongoDB for a given activity ID and a list of rows from the activity file.
+        :param activity_id: ID of the activity
+        :param rows: list of rows from the activity file
+        """
+        # Find the activity document by activity_id
+        activity_doc = self.db['activities'].find_one({"_id": activity_id})
+
+        if not activity_doc:
+            print(f"Activity with ID {activity_id} not found.")
+            return
+
+        trackpoints = []
+        
+        for row in rows[6:]:
+            data = row.strip().split(",")
+            
+            # Extract data from the row
+            latitude = float(data[0])
+            longitude = float(data[1])
+            altitude = float(data[3])
+            days = float(data[4])
+            date = data[5]
+            time = data[6]
+            date_time_str = f"{date} {time}"
+            date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+
+            # Handle the altitude value
+            if altitude == -777:
+                altitude = None
+
+            # Create a trackpoint document
+            trackpoint = {
+                "activity_id": activity_id,
+                "lat": latitude,
+                "lon": longitude,
+                "altitude": altitude,
+                "date_days": days,
+                "date_time": date_time
+            }
+            trackpoints.append(trackpoint)
+
+        # Insert all trackpoints into the 'trackpoints' collection
+        try:
+            if trackpoints:
+                self.db['trackpoints'].insert_many(trackpoints)
+                print(f"Inserted {len(trackpoints)} trackpoints for activity {activity_id}")
+        except Exception as e:
+            print(f"Error inserting trackpoints for activity {activity_id}: {e}")
 
 
     def drop_all_tables(self):

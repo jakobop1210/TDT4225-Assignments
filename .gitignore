@@ -1,8 +1,5 @@
-# Ignore all files in the root folder
 .DS_Store
 
-# Ignoe all files in dataset folder
-assignment2/dataset/
-assignment3/dataset/
+dataset/
 
 .venv/
