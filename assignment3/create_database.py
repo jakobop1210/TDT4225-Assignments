@@ -23,6 +23,7 @@ class CreateDatabase:
         for doc in documents: 
             pprint(doc)
 
+
     def get_labeled_user_ids(self):
         """
         Find the user IDs that have labels.txt file in the dataset.
@@ -48,10 +49,49 @@ class CreateDatabase:
         collections = self.client['test'].list_collection_names()
         print(collections)
 
+
     def create_tables(self):
         self.create_collection('users')
         self.create_collection('activities')
         self.create_collection('trackpoints')
+
+
+    def insert_data(self):
+        self.insert_users('users');
+
+
+    def insert_users(self, collection_name):
+        labeled_user_ids = self.get_labeled_user_ids()
+        collection = self.db[collection_name]
+
+        docs = []
+        for entry in os.listdir(DATASET_PATH):
+            # Skip hidden files
+            if entry.startswith('.'):
+                continue
+
+            # Prepare document with '_id' as entry name and 'has_labels' as a boolean
+            has_labels = entry in labeled_user_ids
+            doc = {
+                "_id": entry,
+                "has_labels": has_labels
+            }
+            
+            docs.append(doc)
+
+        # Insert all documents at once
+        try:
+            collection.insert_many(docs, ordered=False)
+        except Exception as err:
+            print(f"Error: {err}")
+
+
+    def drop_all_tables(self):
+        print("Drop whole database...")
+        self.db.drop_collection('users')
+        self.db.drop_collection('activities')
+        self.db.drop_collection('trackpoints')
+
 
 def main():
     program = None
