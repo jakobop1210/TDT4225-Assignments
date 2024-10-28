@@ -202,6 +202,8 @@ class CreateDatabase:
             return
 
         trackpoints = []
+        global prev_alt
+        prev_alt = None
         
         for row in rows[6:]:
             data = row.strip().split(",")
@@ -220,6 +222,8 @@ class CreateDatabase:
             if altitude == -777:
                 altitude = None
 
+            alt_inc = self.get_alt_inc(altitude)
+
             # Create a trackpoint document
             trackpoint = {
                 "activity_id": activity_id,
@@ -227,7 +231,8 @@ class CreateDatabase:
                 "lon": longitude,
                 "altitude": altitude,
                 "date_days": days,
-                "date_time": date_time
+                "date_time": date_time,
+                "alt_inc": alt_inc
             }
             trackpoints.append(trackpoint)
 
@@ -245,6 +250,17 @@ class CreateDatabase:
         self.db.drop_collection('users')
         self.db.drop_collection('activities')
         self.db.drop_collection('trackpoints')
+    
+    def get_alt_inc(self, alt):
+        global prev_alt
+        if alt == None:
+            return 0
+        if prev_alt == None:
+            result = 0
+        else:
+            result = alt - prev_alt
+        prev_alt = alt
+        return result
 
 
 def main():
