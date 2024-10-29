@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pprint import pprint
 from DbConnector import DbConnector
 import pandas as pd
@@ -15,14 +15,14 @@ class CreateDatabase:
 
 
     def create_collection(self, collection_name):
-        collection = self.db.create_collection(collection_name)    
+        collection = self.db.create_collection(collection_name)
         print('Created collection: ', collection)
 
 
     def fetch_documents(self, collection_name):
         collection = self.db[collection_name]
         documents = collection.find({})
-        for doc in documents: 
+        for doc in documents:
             pprint(doc)
 
 
@@ -40,13 +40,13 @@ class CreateDatabase:
         labeled_user_ids = [line.strip() for line in labeled_user_ids]
 
         return labeled_user_ids
-        
+
 
     def drop_collection(self, collection_name):
         collection = self.db[collection_name]
         collection.drop()
 
-        
+
     def show_collection(self):
         collections = self.client['test'].list_collection_names()
         print(collections)
@@ -79,7 +79,7 @@ class CreateDatabase:
                 "_id": entry,
                 "has_labels": has_labels
             }
-            
+
             docs.append(doc)
 
         # Insert all documents at once
@@ -117,7 +117,7 @@ class CreateDatabase:
         else:
             return None
 
-    
+
     def insert_activities(self):
         """
         Insert activity data into MongoDB. Loops over all users and their activity files
@@ -125,7 +125,7 @@ class CreateDatabase:
         the transportation mode will be fetched from get_transportation_mode.
         """
         labeled_user_ids = self.get_labeled_user_ids()
-        activites_collection = self.db['activities']
+        activities_collection = self.db['activities']
         users_collection = self.db['users']
 
         # Get all users from the 'users' collection
@@ -169,32 +169,64 @@ class CreateDatabase:
                     if user_id in labeled_user_ids:
                         transportation_mode = self.get_transportation_mode(user_folder, start_date_time, end_date_time)
 
+                    # Determine if the activity is valid
+                    is_valid = self.validate_activity(rows)
+
                     # Create activity document
                     activity_doc = {
                         "user_id": user_id,
                         "transportation_mode": transportation_mode,
                         "start_date_time": start_date_time,
                         "end_date_time": end_date_time,
+                        "is_valid": is_valid,
                     }
 
-                    # Insert the activity document into MongoDB
-                    activites_collection.insert_one(activity_doc)
+                    inserted_activity = activities_collection.insert_one(activity_doc)
+                    activity_id = inserted_activity.inserted_id  # Get the ID of the inserted document
 
-                    # Insert trackpoint data
-                    self.insert_trackpoint_data(activity_doc["_id"], rows)
+                    # Insert trackpoint data using the new activity_id
+                    self.insert_trackpoint_data(activity_id, rows)
 
                 except (ValueError, IndexError) as e:
                     print(f"Error parsing data for {activity_file}: {e}")
                     continue
 
 
+    def validate_activity(self, rows):
+        """
+        Validate the activity by checking if any consecutive trackpoints have timestamps
+        that deviate by at least 5 minutes. If such a deviation exists, the activity is invalid.
+        """
+        timestamps = []
+
+        # Extract timestamps from rows
+        for row in rows[7:]:
+            try:
+                # Extract the timestamp
+                timestamp_str = row.strip().split(',')[5] + ' ' + row.strip().split(',')[6]
+                timestamps.append(datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S'))
+            except (ValueError, IndexError):
+                print(f"Error parsing timestamp from row: {row}")
+                return False  # If there's an error in parsing, consider the activity invalid
+
+        # Check for deviations in timestamps
+        for i in range(1, len(timestamps)):
+            time_difference = (timestamps[i] - timestamps[i - 1]).total_seconds() / 60  # Convert to minutes
+            if time_difference >= 5:
+                return False  # Invalid if any pair of consecutive timestamps deviate by 5 minutes
+
+        return True
+
+
+    def check_invalid_activity(self, timestamps):
+        # Check for any consecutive trackpoints that deviate by at least 5 minutes
+        for i in range(1, len(timestamps)):
+            if (timestamps[i] - timestamps[i - 1]) >= timedelta(minutes=5):
+                return True  # Mark as invalid if the difference is 5 minutes or more
+        return False  # Otherwise, valid
+
+
     def insert_trackpoint_data(self, activity_id, rows):
-        """
-        Insert trackpoint data into MongoDB for a given activity ID and a list of rows from the activity file.
-        :param activity_id: ID of the activity
-        :param rows: list of rows from the activity file
-        """
-        # Find the activity document by activity_id
         activity_doc = self.db['activities'].find_one({"_id": activity_id})
 
         if not activity_doc:
@@ -207,7 +239,7 @@ class CreateDatabase:
         
         for row in rows[6:]:
             data = row.strip().split(",")
-            
+
             # Extract data from the row
             latitude = float(data[0])
             longitude = float(data[1])
