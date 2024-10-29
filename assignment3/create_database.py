@@ -250,7 +250,8 @@ class CreateDatabase:
         self.db.drop_collection('users')
         self.db.drop_collection('activities')
         self.db.drop_collection('trackpoints')
-    
+
+
     def get_alt_inc(self, alt):
         global prev_alt
         if alt == None:
@@ -263,13 +264,32 @@ class CreateDatabase:
         return result
 
 
+    def print_first_2_documents(self):
+        """
+        Print the first 2 documents of each collection.
+        """
+        collections = ["users", "activities", "trackpoints"]
+
+        for collection_name in collections:
+            collection = self.db[collection_name]
+            print(f"\nFirst 2 rows in collection '{collection_name}':")
+
+            # Fetch the first 2 documents and print them
+            documents = collection.find().sort("_id", 1).limit(2)
+            for doc in documents:
+                pprint(doc)
+
+
 def main():
     program = None
     try:
         program = CreateDatabase()
+
         program.drop_all_tables()
         program.create_tables()
         program.insert_data()
+        program.print_first_2_documents()
+
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
