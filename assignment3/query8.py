@@ -8,33 +8,33 @@ def users_most_gained_elevation():
 
     query = db.trackpoints.aggregate(
         [
-            {"$match": {"alt_inc": {"$gt": 0}}},  # Only positive altitude increments
+            {"$match": {"alt_inc": {"$gt": 0}}},  
             {
-                "$lookup": {  # Join with activities to get user_id
+                "$lookup": {  
                     "from": "activities",
                     "localField": "activity_id",
                     "foreignField": "_id",
                     "as": "activity_info"
                 }
             },
-            {"$unwind": "$activity_info"},  # Flatten the joined activity info
+            {"$unwind": "$activity_info"}, 
             {
                 "$group": {
-                    "_id": "$activity_info.user_id",  # Group by user_id from activity_info
-                    "total_alt": {"$sum": "$alt_inc"}  # Sum of altitude increments
+                    "_id": "$activity_info.user_id",  
+                    "total_alt": {"$sum": "$alt_inc"}  
                 }
             },
-            {"$sort": {"total_alt": -1}},  # Sort by total altitude descending
-            {"$limit": 20}  # Limit to top 20 users
+            {"$sort": {"total_alt": -1}},  
+            {"$limit": 20}  
         ]
     )
 
     if query:
-        print("Top 20 users with the most altitude meters: ")
+        print("Top 20 users with the highest altitude gains: ")
         rows = []
         for i, doc in enumerate(query):
             rows.append([i + 1, doc["_id"], doc["total_alt"]*0.3048])
-        columns = ["Rank", "User ID", "Total Altitude Meters"]
+        columns = ["Rank", "User ID", "Altitude Meters Gained"]
         print(tabulate(rows, columns))
     else:
         print("Something went wrong")
