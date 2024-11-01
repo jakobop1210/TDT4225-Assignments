@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 from pprint import pprint
+
+from tabulate import tabulate
 from DbConnector import DbConnector
 import pandas as pd
 import os
@@ -298,18 +300,25 @@ class CreateDatabase:
 
     def print_first_2_documents(self):
         """
-        Print the first 2 documents of each collection.
+        Print the first 10 documents of each collection in tabular format.
         """
         collections = ["users", "activities", "trackpoints"]
 
         for collection_name in collections:
             collection = self.db[collection_name]
-            print(f"\nFirst 2 rows in collection '{collection_name}':")
+            print(f"\nFirst 10 rows in collection '{collection_name}':")
 
-            # Fetch the first 2 documents and print them
-            documents = collection.find().sort("_id", 1).limit(2)
-            for doc in documents:
-                pprint(doc)
+            # Fetch the first 10 documents
+            documents = collection.find().sort("_id", 1).limit(10)
+
+            # Extract fields from documents and create a list of rows for tabulation
+            rows = [doc for doc in documents]
+
+            # Display the documents in a table format
+            if rows:
+                print(tabulate(rows, headers="keys", tablefmt="grid"))
+            else:
+                print("No documents found.")
 
 
 def main():
